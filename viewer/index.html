@@ -113,7 +113,9 @@ const $ = s => document.querySelector(s);
 const CAT_LIGHT=["#2a78d6","#1baf7a","#eda100","#008300","#4a3aa7","#e34948","#e87ba4","#eb6834"];
 const CAT_DARK =["#3987e5","#199e70","#c98500","#008300","#9085e9","#e66767","#d55181","#d95926"];
 const OTHER="#898781";  // 9th+ project folds into muted "other" (never a generated hue)
-const SHAPE={insight:"ellipse",method:"round-rectangle",result:"hexagon",question:"diamond",milestone:"star",project:"round-octagon"};
+// straight polygons + ellipse + round-rectangle only — avoid generic round-polygon
+// shapes (round-octagon etc.) which crash Cytoscape's corner-rounding path.
+const SHAPE={insight:"ellipse",method:"round-rectangle",result:"hexagon",question:"diamond",milestone:"star",project:"octagon"};
 let DATA={nodes:[],edges:[]}, cy, projSlot={}, mode="graph", selected=null;
 
 const isDark=()=>window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches;
