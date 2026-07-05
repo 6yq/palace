@@ -196,7 +196,13 @@ function render(){
   layout();
 }
 function layout(){
-  if(mode==="graph"){ cy.layout({name:"cose",animate:false,nodeRepulsion:9000,idealEdgeLength:90,padding:40}).run(); }
+  cy.resize();                       // container may have sized after first paint / tunnel
+  if(mode==="graph"){
+    const l=cy.layout({name:"cose",animate:false,nodeRepulsion:9000,idealEdgeLength:90,padding:40});
+    l.one("layoutstop",()=>cy.fit(cy.nodes(),40));   // fit view to the nodes (was missing)
+    l.run();
+    cy.fit(cy.nodes(),40);           // immediate fit too (cose is synchronous here)
+  }
   else { roadmap(); }
 }
 function roadmap(){
