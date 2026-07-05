@@ -126,9 +126,19 @@ function projColor(p){ const s=projSlot[p]; if(s==null||s<0) return OTHER; retur
 function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),1600); }
 
 async function load(){
-  DATA = await (await fetch("./api/dots")).json();
-  assignSlots(); buildFilters(); buildLegend(); render();
-  $("#empty").textContent = DATA.nodes.length ? "Click a node to view & edit." : "No dots yet. Use the distill-session skill or + dot.";
+  try{
+    if(typeof cytoscape==="undefined") throw new Error("cytoscape.min.js failed to load (check ./cytoscape.min.js over the tunnel)");
+    const r=await fetch("./api/dots"); if(!r.ok) throw new Error("GET /api/dots -> HTTP "+r.status);
+    DATA = await r.json();
+    assignSlots(); buildFilters(); buildLegend(); render();
+    $("#empty").textContent = DATA.nodes.length
+      ? ("Loaded "+DATA.nodes.length+" dots — click a node to edit.")
+      : "No dots yet. Use the distill-session skill or + dot.";
+  }catch(e){
+    $("#empty").innerHTML = "<b style='color:#e34948'>load error:</b> "+((e&&e.message)||e)
+      +"<br><small>open devtools console (F12) for detail</small>";
+    console.error("palace load failed:", e);
+  }
 }
 
 function fillSelect(sel, vals){ const cur=sel.value; [...sel.querySelectorAll("option:not(:first-child)")].forEach(o=>o.remove());
