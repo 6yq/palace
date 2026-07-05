@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>palace</title>
+<script src="./cytoscape.min.js"></script>
+<style>
+  :root{ --bg:#fbfbfa; --ink:#1a1a1a; --mut:#777; --line:#e3e3e0; --accent:#c0392b; }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+  #app{display:flex;height:100%}
+  #cy{flex:1;height:100%;background:
+      radial-gradient(circle at 1px 1px,#ececec 1px,transparent 0) 0 0/22px 22px}
+  #side{width:360px;border-left:1px solid var(--line);background:#fff;display:flex;flex-direction:column;overflow:auto}
+  header{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  header b{font-size:16px;letter-spacing:.5px}
+  header .grow{flex:1}
+  button,select,input{font:inherit;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:6px;padding:5px 9px}
+  button{cursor:pointer}
+  button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .bar{display:flex;gap:6px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap;background:#fafafa}
+  .bar label{color:var(--mut);font-size:12px}
+  #panel{padding:12px;display:none}
+  #panel.show{display:block}
+  #panel h3{margin:.2em 0 .6em;font-size:15px}
+  #panel .row{display:flex;flex-direction:column;gap:3px;margin-bottom:9px}
+  #panel .row label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut)}
+  #panel textarea{width:100%;min-height:220px;font:12px/1.5 ui-monospace,Menlo,monospace;resize:vertical}
+  #panel .two{display:flex;gap:8px}
+  #panel .two>*{flex:1}
+  .chk{flex-direction:row!important;align-items:center;gap:6px}
+  .chk label{text-transform:none!important}
+  #empty{padding:24px;color:var(--mut)}
+  #legend{padding:10px 12px;border-top:1px solid var(--line);font-size:12px;color:var(--mut)}
+  #legend span{display:inline-block;margin-right:10px;white-space:nowrap}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:-1px;margin-right:3px}
+  #toast{position:fixed;bottom:16px;left:16px;background:var(--ink);color:#fff;padding:8px 14px;border-radius:6px;opacity:0;transition:.3s;pointer-events:none}
+  #toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="cy"></div>
+  <div id="side">
+    <header>
+      <b>palace</b>
+      <span class="grow"></span>
+      <button id="viewGraph" class="on">graph</button>
+      <button id="viewRoad">roadmap</button>
+      <button id="newDot" class="primary">+ dot</button>
+    </header>
+    <div class="bar">
+      <input id="search" placeholder="search title/keyword" style="flex:1;min-width:120px">
+      <select id="fProject"><option value="">all projects</option></select>
+      <select id="fType"><option value="">all types</option></select>
+      <select id="fStatus">
+        <option value="">any status</option>
+        <option value="open">open</option><option value="done">done</option><option value="parked">parked</option>
+      </select>
+      <label class="chk" style="display:flex"><input type="checkbox" id="fMile"> milestones</label>
+    </div>
+    <div id="empty">Click a node to view &amp; edit. Loading…</div>
+    <div id="panel">
+      <h3 id="pTitle"></h3>
+      <div class="row"><label>title</label><input id="eTitle"></div>
+      <div class="two">
+        <div class="row"><label>type</label>
+          <select id="eType">
+            <option>insight</option><option>method</option><option>result</option>
+            <option>question</option><option>milestone</option><option>project</option>
+          </select></div>
+        <div class="row"><label>project</label><input id="eProject"></div>
+      </div>
+      <div class="two">
+        <div class="row"><label>date</label><input id="eDate" placeholder="YYYY-MM-DD"></div>
+        <div class="row"><label>status</label>
+          <select id="eStatus"><option>open</option><option>done</option><option>parked</option></select></div>
+      </div>
+      <div class="row chk"><input type="checkbox" id="eMile"><label for="eMile">milestone (starred + git-taggable)</label></div>
+      <div class="row"><label>keywords (comma-sep)</label><input id="eKw"></div>
+      <div class="row"><label>body (markdown — edit ## Links here for edges)</label>
+        <textarea id="eBody"></textarea></div>
+      <div class="two">
+        <button class="primary" id="save">save to markdown</button>
+        <button id="focus">focus neighbours</button>
+      </div>
+      <div class="row" style="margin-top:8px"><label>id (filename stem — fixed)</label>
+        <input id="eId" readonly style="color:var(--mut)"></div>
+    </div>
+    <div id="legend"></div>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+const $ = s => document.querySelector(s);
+const PALETTE = ["#4e79a7","#59a14f","#e15759","#f28e2b","#b07aa1","#76b7b2","#edc948","#ff9da7","#9c755f","#bab0ac"];
+const SHAPE = {insight:"ellipse",method:"round-rectangle",result:"hexagon",question:"diamond",milestone:"star",project:"round-octagon"};
+let DATA={nodes:[],edges:[]}, cy, colorOf={}, mode="graph", selected=null;
+
+function projColor(p){ if(!(p in colorOf)){ colorOf[p]=PALETTE[Object.keys(colorOf).length%PALETTE.length]; } return colorOf[p]; }
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),1600); }
+
+async function load(){
+  DATA = await (await fetch("./api/dots")).json();
+  DATA.nodes.forEach(n=>projColor(n.project));
+  buildFilters(); buildLegend(); render();
+  $("#empty").textContent = DATA.nodes.length ? "Click a node to view & edit." : "No dots yet. Use the distill-session skill or + dot.";
+}
+
+function fillSelect(sel, vals){ const cur=sel.value; [...sel.querySelectorAll("option:not(:first-child)")].forEach(o=>o.remove());
+  [...new Set(vals)].sort().forEach(v=>{ const o=document.createElement("option"); o.value=o.textContent=v; sel.appendChild(o); }); sel.value=cur; }
+function buildFilters(){ fillSelect($("#fProject"), DATA.nodes.map(n=>n.project)); fillSelect($("#fType"), DATA.nodes.map(n=>n.type)); }
+function buildLegend(){ $("#legend").innerHTML =
+  Object.keys(colorOf).sort().map(p=>`<span><i class="dot" style="background:${colorOf[p]}"></i>${p}</span>`).join("")
+  + "<br>shape = type · ★ = milestone"; }
+
+function pass(n){
+  const q=$("#search").value.toLowerCase();
+  if(q && !(n.title.toLowerCase().includes(q) || (n.keywords||[]).join(" ").toLowerCase().includes(q))) return false;
+  if($("#fProject").value && n.project!==$("#fProject").value) return false;
+  if($("#fType").value && n.type!==$("#fType").value) return false;
+  if($("#fStatus").value && n.status!==$("#fStatus").value) return false;
+  if($("#fMile").checked && !n.milestone) return false;
+  return true;
+}
+
+function elements(){
+  const keep=new Set(DATA.nodes.filter(pass).map(n=>n.id));
+  const els=[];
+  DATA.nodes.forEach(n=>{ if(!keep.has(n.id)) return;
+    els.push({data:{id:n.id,label:n.title,type:n.type,project:n.project,status:n.status,
+      mile:n.milestone?1:0,color:projColor(n.project),shape:SHAPE[n.type]||"ellipse"}}); });
+  DATA.edges.forEach(e=>{ if(keep.has(e.source)&&keep.has(e.target))
+    els.push({data:{id:e.source+"|"+e.target+"|"+e.rel,source:e.source,target:e.target,rel:e.rel,
+      road:e.rel==="next"?1:0}}); });
+  return els;
+}
+
+const STYLE=[
+  {selector:"node",style:{"background-color":"data(color)","shape":"data(shape)","label":"data(label)",
+    "font-size":10,"text-wrap":"wrap","text-max-width":110,"text-valign":"bottom","text-margin-y":3,
+    "width":26,"height":26,"border-width":0,"color":"#333"}},
+  {selector:'node[mile=1]',style:{"width":40,"height":40,"border-width":3,"border-color":"#d4af37","font-weight":"bold"}},
+  {selector:'node[status="done"]',style:{"opacity":0.55}},
+  {selector:'node[status="parked"]',style:{"opacity":0.4,"border-style":"dashed","border-width":2,"border-color":"#aaa"}},
+  {selector:"edge",style:{"width":1.4,"line-color":"#ccc","target-arrow-color":"#ccc",
+    "target-arrow-shape":"triangle","curve-style":"bezier","font-size":8,"color":"#999","label":"data(rel)","text-rotation":"autorotate"}},
+  {selector:'edge[road=1]',style:{"line-color":"#c0392b","target-arrow-color":"#c0392b","width":2.4}},
+  {selector:".sel",style:{"border-width":4,"border-color":"#c0392b"}},
+  {selector:".dim",style:{"opacity":0.12}},
+];
+
+function render(){
+  const els=elements();
+  if(!cy){ cy=cytoscape({container:$("#cy"),elements:els,style:STYLE,wheelSensitivity:0.25,minZoom:0.1,maxZoom:3});
+    cy.on("tap","node",e=>select(e.target.id())); cy.on("tap",e=>{ if(e.target===cy) deselect(); }); }
+  else { cy.json({elements:els}); }
+  layout();
+}
+function layout(){
+  if(mode==="graph"){ cy.layout({name:"cose",animate:false,nodeRepulsion:9000,idealEdgeLength:90,padding:40}).run(); }
+  else { roadmap(); }
+}
+function roadmap(){
+  const ns=cy.nodes();
+  const dates=ns.map(n=>DATA.nodes.find(d=>d.id===n.id()).date).filter(Boolean).sort();
+  const t0=dates[0]||"", t1=dates[dates.length-1]||t0;
+  const projs=[...new Set(ns.map(n=>n.data("project")))].sort();
+  const W=Math.max(900,cy.width()-80), laneH=90;
+  const span=(toNum(t1)-toNum(t0))||1;
+  ns.positions(n=>{ const d=DATA.nodes.find(x=>x.id===n.id());
+    const x=40 + W*((toNum(d.date)-toNum(t0))/span || 0);
+    const y=40 + projs.indexOf(n.data("project"))*laneH + (hash(n.id())%40);
+    return {x,y}; });
+  cy.fit(cy.nodes(),40);
+}
+function toNum(d){ if(!d)return 0; const m=/(\d{4})-?(\d{2})-?(\d{2})/.exec(d); return m?(+m[1]*372+ +m[2]*31+ +m[3]):0; }
+function hash(s){ let h=0; for(const c of s) h=(h*31+c.charCodeAt(0))>>>0; return h; }
+
+function select(id){
+  selected=id; const n=DATA.nodes.find(x=>x.id===id); if(!n) return;
+  cy.elements().removeClass("sel dim");
+  const node=cy.$id(id); const nbr=node.closedNeighborhood();
+  cy.elements().not(nbr).addClass("dim"); node.addClass("sel");
+  $("#empty").style.display="none"; $("#panel").classList.add("show");
+  $("#pTitle").textContent=n.title;
+  $("#eId").value=n.id; $("#eTitle").value=n.title; $("#eType").value=n.type;
+  $("#eProject").value=n.project; $("#eDate").value=n.date; $("#eStatus").value=n.status;
+  $("#eMile").checked=!!n.milestone; $("#eKw").value=(n.keywords||[]).join(", ");
+  $("#eBody").value=n.body||"";
+}
+function deselect(){ selected=null; cy.elements().removeClass("sel dim");
+  $("#panel").classList.remove("show"); $("#empty").style.display="block"; }
+
+async function save(){
+  const id=$("#eId").value.trim(); if(!id){ toast("no id"); return; }
+  const payload={id,fields:{title:$("#eTitle").value,type:$("#eType").value,project:$("#eProject").value,
+    date:$("#eDate").value,status:$("#eStatus").value,milestone:$("#eMile").checked,keywords:$("#eKw").value},
+    body:$("#eBody").value};
+  const r=await (await fetch("./api/dot",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(payload)})).json();
+  if(r.ok){ toast("saved "+id); await load(); select(id); } else toast("error: "+(r.error||"?"));
+}
+function newDot(){
+  deselect();
+  $("#empty").style.display="none"; $("#panel").classList.add("show");
+  $("#pTitle").textContent="new dot";
+  $("#eId").removeAttribute("readonly"); $("#eId").value=""; $("#eId").style.color="var(--ink)";
+  $("#eTitle").value=""; $("#eType").value="insight"; $("#eProject").value=$("#fProject").value||"";
+  $("#eDate").value=""; $("#eStatus").value="open"; $("#eMile").checked=false; $("#eKw").value="";
+  $("#eBody").value="## Motivation\n\n## Guess -> Method -> Result\n- Guess: \n- Method: \n- Result: \n## On-going\n- [ ] \n## Links\n- related:: [[]]\n";
+  $("#eId").focus();
+}
+
+$("#viewGraph").onclick=()=>{mode="graph";$("#viewGraph").classList.add("on");$("#viewRoad").classList.remove("on");layout();};
+$("#viewRoad").onclick =()=>{mode="road"; $("#viewRoad").classList.add("on"); $("#viewGraph").classList.remove("on");layout();};
+$("#newDot").onclick=newDot;
+$("#save").onclick=save;
+$("#focus").onclick=()=>{ if(selected){ cy.fit(cy.$id(selected).closedNeighborhood(),60);} };
+["#search","#fProject","#fType","#fStatus","#fMile"].forEach(s=>$(s).addEventListener("input",()=>{render();}));
+load();
+</script>
+</body>
+</html>

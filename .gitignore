@@ -1,0 +1,20 @@
+# ── Personal knowledge base — NEVER tracked ──────────────────────────────
+# Your real dots are yours: kept on disk + Syncthing-synced, never pushed.
+# The public repo ships only the pipeline (viewer + skill + schema) and the
+# synthetic examples/ below.
+dots/
+INDEX.md
+
+# Local session context / handoff notes (session-specific, not for GitHub)
+HANDOFF.md
+CLAUDE.local.md
+*.local.md
+
+# Syncthing scratch
+*.sync-conflict-*
+.stfolder/
+
+# python
+__pycache__/
+*.pyc
+CLAUDE.md
