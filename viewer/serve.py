@@ -58,6 +58,7 @@ def parse_dot(path):
     fm.setdefault("status", "open")
     fm.setdefault("milestone", False)
     fm.setdefault("date", "")
+    fm.setdefault("source", "")          # provenance for imported dots (DOI/URL/cite); "" = own work
     fm.setdefault("keywords", [])
     if isinstance(fm["keywords"], str):
         fm["keywords"] = [fm["keywords"]] if fm["keywords"] else []
@@ -77,7 +78,7 @@ def collect():
     for d in dots.values():
         nodes.append({k: d[k] for k in
                       ("id", "title", "type", "project", "date", "status",
-                       "milestone", "keywords", "body")})
+                       "milestone", "keywords", "source", "body")})
         body = d["body"]
         typed = set()
         for rel, tgt in TYPED_EDGE.findall(body):
@@ -104,6 +105,7 @@ def write_dot(payload):
     if isinstance(kw, str):
         kw = [x.strip() for x in kw.split(",") if x.strip()]
     ms = str(f.get("milestone", False)).lower() in ("true", "1", "yes", "on")
+    src = str(f.get("source", "")).strip()
     fm = (
         f"---\n"
         f"id: {did}\n"
@@ -114,7 +116,8 @@ def write_dot(payload):
         f"status: {f.get('status','open').strip()}\n"
         f"milestone: {'true' if ms else 'false'}\n"
         f"keywords: [{', '.join(kw)}]\n"
-        f"---\n"
+        + (f"source: {src}\n" if src else "")
+        + f"---\n"
     )
     body = payload.get("body", "").rstrip() + "\n"
     DOTS.mkdir(exist_ok=True)

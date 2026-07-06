@@ -61,7 +61,7 @@
   #grip:hover::before,#grip.drag::before{background:var(--accent)}
 
   /* roadmap pan/zoom controls (roadmap mode only) */
-  #roadCtl{position:absolute;top:12px;left:12px;display:none;gap:5px;z-index:6}
+  #roadCtl{position:absolute;top:12px;right:12px;display:none;gap:5px;z-index:6}
   #app.road #roadCtl{display:inline-flex}
   #roadCtl button{width:30px;height:30px;padding:0;font-size:17px;line-height:1;border-radius:9px;
     background:var(--panel);box-shadow:var(--shadow);color:var(--ink)}
@@ -171,6 +171,10 @@
         <option value="">any status</option>
         <option value="open">open</option><option value="done">done</option><option value="parked">parked</option>
       </select>
+      <select id="fSource" title="mine = your work · imported = has a source">
+        <option value="">any origin</option>
+        <option value="mine">mine</option><option value="imported">imported</option>
+      </select>
       <label class="chk"><input type="checkbox" id="fMile"> milestones</label>
     </div>
     <div class="bar chips">
@@ -197,6 +201,7 @@
       </div>
       <div class="row rowchk"><input type="checkbox" id="eMile"><label for="eMile">milestone (starred + git-taggable)</label></div>
       <div class="row"><label>keywords (comma-sep)</label><input id="eKw"></div>
+      <div class="row"><label>source (DOI/URL/cite — blank = your own work)</label><input id="eSource" placeholder="e.g. 10.1088/… or arXiv:… — leave blank for own work"></div>
       <div class="row"><label>body (markdown — edit ## Links here for edges)</label>
         <textarea id="eBody"></textarea></div>
       <div class="two">
@@ -313,7 +318,8 @@ function buildLegend(){
     + edge(cssVar("--e-hier"),"part-of")+edge(cssVar("--e-seq"),"next")
     + edge(cssVar("--e-causal"),"motivates","4 3")+edge(cssVar("--e-assoc"),"related","2 3")+`</div>`
     + `<div class="cap">status</div>`
-    + `<div class="note">★ gold border = milestone &nbsp;·&nbsp; faded = done &nbsp;·&nbsp; dashed = parked</div>`;
+    + `<div class="note">★ gold border = milestone &nbsp;·&nbsp; faded = done &nbsp;·&nbsp; dashed = parked</div>`
+    + `<div class="cap">origin</div><div class="note">solid = your work &nbsp;·&nbsp; hollow = imported source (DOI / paper / slides) &nbsp;·&nbsp; filter with the “origin” dropdown</div>`;
 }
 function miniShape(t,c){ const s=svgShapeMarkup(t,9,7,6,c,"",""); return `<svg width="18" height="14">${s}</svg>`; }
 
@@ -324,6 +330,7 @@ function pass(n){
   if(projFilter.size && !projFilter.has(n.project)) return false;
   if($("#fType").value && n.type!==$("#fType").value) return false;
   if($("#fStatus").value && n.status!==$("#fStatus").value) return false;
+  const so=$("#fSource").value; if(so==="mine" && n.source) return false; if(so==="imported" && !n.source) return false;
   if($("#fMile").checked && !n.milestone) return false;
   return true;
 }
@@ -337,7 +344,7 @@ function graphElements(){
   const keep=new Set(visibleNodes().map(n=>n.id)); const els=[];
   DATA.nodes.forEach(n=>{ if(!keep.has(n.id)) return;
     els.push({data:{id:n.id,label:n.title,type:n.type,project:n.project,status:n.status,
-      mile:(n.milestone||n.type==="milestone")?1:0,color:projColor(n.project),
+      mile:(n.milestone||n.type==="milestone")?1:0,src:(n.source?1:0),color:projColor(n.project),
       shape:SHAPE[n.type]||"ellipse",size:sizeOf(n)}}); });
   DATA.edges.forEach(e=>{ if(keep.has(e.source)&&keep.has(e.target))
     els.push({data:{id:e.source+"|"+e.target+"|"+e.rel,source:e.source,target:e.target,rel:e.rel,
@@ -352,6 +359,7 @@ function graphStyle(){
       "text-wrap":"wrap","text-max-width":110,"text-valign":"bottom","text-margin-y":5,
       "color":t.ink2,"border-width":0,"min-zoomed-font-size":7,
       "text-background-color":t.surface,"text-background-opacity":0.72,"text-background-padding":2,"text-background-shape":"round-rectangle"}},
+    {selector:'node[src=1]',style:{"background-opacity":0.06,"border-width":2,"border-color":"data(color)","border-opacity":0.95}},
     {selector:'node[type="project"]',style:{"border-width":2,"border-color":t.ink2,"border-opacity":0.6,
       "font-size":12,"font-weight":"bold","color":t.ink}},
     {selector:'node[mile=1]',style:{"border-width":3,"border-color":t.gold,"color":t.ink,"font-weight":"bold"}},
@@ -478,8 +486,9 @@ function renderRoadmap(){
   const x0=18, x1=plotW-40;                                          // body-local coords (gutter is a separate pane)
   const L=roadmapLayout(nodes,{GUT:0,AXIS:0,PADT,ROW,LANEPAD,MARKW,x0,x1});
   const byId=Object.fromEntries(nodes.map(n=>[n.id,n]));
-  let maxRight=plotW;                                                // extend so the longest label is never clipped
-  nodes.forEach(n=>{ const p=L.pos[n.id]; if(!p) return; maxRight=Math.max(maxRight, p.x+svgRadius(n)+8+approxTextW(n.title)); });
+  const MAXLAB=300;                                                  // labels clip to this; full text on hover + panel
+  let maxRight=plotW;                                                // reserve room for the (bounded) labels
+  nodes.forEach(n=>{ const p=L.pos[n.id]; if(!p) return; maxRight=Math.max(maxRight, p.x+svgRadius(n)+8+Math.min(MAXLAB,approxTextW(n.title))); });
   const PW=Math.round(maxRight+18), PH=Math.round(L.totalH);         // plot content size, in plot-units
   roadNat={PW,PH,GUT,AXIS};
   const bodyW=Math.round(PW*z), bodyH=Math.round(PH*z);
@@ -503,17 +512,30 @@ function renderRoadmap(){
     const np=nextPath(a,bb,svgRadius(byId[e.source]||{}),svgRadius(byId[e.target]||{}));
     b+=`<path d="${np.path}" fill="none" stroke="${t.seq}" stroke-width="2.4" opacity="0.95"/>`;
     b+=`<polygon points="-5.5,-4 5.5,0 -5.5,4" fill="${t.seq}" transform="translate(${np.mx.toFixed(1)},${np.my.toFixed(1)}) rotate(${np.ang})"/>`; });
-  nodes.forEach(n=>{ const p=L.pos[n.id]; if(!p) return; const r=svgRadius(n);   // label backing plates
-    b+=`<rect x="${(p.x+r+4).toFixed(1)}" y="${(p.y-8.5).toFixed(1)}" width="${Math.round(approxTextW(n.title))}" height="17" rx="4" fill="${t.surface}" opacity="0.78"/>`; });
-  nodes.forEach(n=>{ const p=L.pos[n.id]; if(!p) return; const r=svgRadius(n);   // markers + labels
+  // per-node label width: clip to the room before the next marker on the SAME row, so a long
+  // title can never overrun the following node/label. Full title stays on hover (<title>) + panel.
+  const rowGroups={};
+  nodes.forEach(n=>{ const p=L.pos[n.id]; if(!p) return; const k=n.project+"|"+p.row; (rowGroups[k]||(rowGroups[k]=[])).push(n.id); });
+  const labelW={};
+  Object.values(rowGroups).forEach(ids=>{ ids.sort((a,c)=>L.pos[a].x-L.pos[c].x);
+    ids.forEach((id,i)=>{ const p=L.pos[id], r=svgRadius(byId[id]), start=p.x+r+7;
+      const lim=(i+1<ids.length)?(L.pos[ids[i+1]].x-svgRadius(byId[ids[i+1]])-12):(PW-6);
+      labelW[id]=Math.max(0,Math.min(MAXLAB,lim-start)); }); });
+  const lblOf=n=> (labelW[n.id]>=22 ? clip(n.title,labelW[n.id]) : "");
+  nodes.forEach(n=>{ const p=L.pos[n.id]; if(!p) return; const lbl=lblOf(n); if(!lbl) return; const r=svgRadius(n);   // label backing plates
+    b+=`<rect x="${(p.x+r+4).toFixed(1)}" y="${(p.y-8.5).toFixed(1)}" width="${Math.round(approxTextW(lbl))}" height="17" rx="4" fill="${t.surface}" opacity="0.78"/>`; });
+  nodes.forEach(n=>{ const p=L.pos[n.id]; if(!p) return; const r=svgRadius(n), lbl=lblOf(n);   // markers + labels
     const done=n.status==="done", parked=n.status==="parked";
     const stroke=(n.milestone||n.type==="milestone")?`stroke="${t.gold}" stroke-width="2.5"`:n.type==="project"?`stroke="${t.ink2}" stroke-width="2"`:"";
     const dash=parked?`stroke-dasharray="3 2" stroke="${t.muted}" stroke-width="1.5"`:"", sel=n.id===selected, op=done?0.5:1;
+    const ext=!!n.source;                                            // imported source → hollow marker
+    let strokeAttr=stroke||dash; if(ext&&!strokeAttr) strokeAttr=`stroke="${projColor(n.project)}" stroke-width="2"`;
     b+=`<g class="rm-node" data-id="${esc(n.id)}" opacity="${op}">`;
+    b+=`<title>${esc(n.title)}${ext?"  ·  ["+esc(n.source)+"]":""}</title>`;
     if(sel) b+=`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r+6}" fill="none" stroke="${t.accent}" stroke-width="2.5"/>`;
-    b+=svgShapeMarkup(n.type,p.x,p.y,r,projColor(n.project),"rm-mark",(stroke||dash));
-    b+=`<text x="${(p.x+r+7).toFixed(1)}" y="${p.y.toFixed(1)}" dominant-baseline="middle" fill="${t.ink2}">${esc(n.title)}</text>`;
-    b+=`<rect class="rm-hit" x="${(p.x-r-2).toFixed(1)}" y="${(p.y-r-2).toFixed(1)}" width="${Math.round(2*r+8+approxTextW(n.title))}" height="${(2*r+4)}"/>`;
+    b+=svgShapeMarkup(n.type,p.x,p.y,r,ext?"none":projColor(n.project),"rm-mark",strokeAttr);
+    if(lbl) b+=`<text x="${(p.x+r+7).toFixed(1)}" y="${p.y.toFixed(1)}" dominant-baseline="middle" fill="${t.ink2}">${esc(lbl)}</text>`;
+    b+=`<rect class="rm-hit" x="${(p.x-r-2).toFixed(1)}" y="${(p.y-r-2).toFixed(1)}" width="${Math.round(2*r+8+(lbl?approxTextW(lbl):0))}" height="${(2*r+4)}"/>`;
     b+=`</g>`; });
   b+=`</svg>`;
 
@@ -550,10 +572,12 @@ function select(id){
   $("#pTitle").textContent=n.title;
   $("#panel").style.setProperty("--pc",projColor(n.project));
   $("#pMeta").innerHTML=`<i class="pdot" style="background:${projColor(n.project)}"></i>`
-    +[n.type,n.project,n.date,n.status].filter(Boolean).map(esc).join("  ·  ");
+    +[n.type,n.project,n.date,n.status].filter(Boolean).map(esc).join("  ·  ")
+    +(n.source?`  ·  <span title="${esc(n.source)}">&#128196; imported</span>`:"");
   $("#eId").value=n.id; $("#eTitle").value=n.title; $("#eType").value=n.type;
   $("#eProject").value=n.project; $("#eDate").value=n.date; $("#eStatus").value=n.status;
   $("#eMile").checked=!!n.milestone; $("#eKw").value=(n.keywords||[]).join(", ");
+  $("#eSource").value=n.source||"";
   $("#eBody").value=n.body||"";
 }
 function deselect(){ selected=null;
@@ -564,7 +588,8 @@ function deselect(){ selected=null;
 async function save(){
   const id=$("#eId").value.trim(); if(!id){ toast("no id"); return; }
   const payload={id,fields:{title:$("#eTitle").value,type:$("#eType").value,project:$("#eProject").value,
-    date:$("#eDate").value,status:$("#eStatus").value,milestone:$("#eMile").checked,keywords:$("#eKw").value},
+    date:$("#eDate").value,status:$("#eStatus").value,milestone:$("#eMile").checked,keywords:$("#eKw").value,
+    source:$("#eSource").value},
     body:$("#eBody").value};
   const r=await (await fetch("./api/dot",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify(payload)})).json();
@@ -576,7 +601,7 @@ function newDot(){
   $("#pTitle").textContent="new dot"; $("#pMeta").textContent="unsaved"; $("#panel").style.setProperty("--pc",cssVar("--accent"));
   $("#eId").removeAttribute("readonly"); $("#eId").value=""; $("#eId").style.color="var(--ink)";
   $("#eTitle").value=""; $("#eType").value="insight"; $("#eProject").value=[...projFilter][0]||"";
-  $("#eDate").value=""; $("#eStatus").value="open"; $("#eMile").checked=false; $("#eKw").value="";
+  $("#eDate").value=""; $("#eStatus").value="open"; $("#eMile").checked=false; $("#eKw").value=""; $("#eSource").value="";
   $("#eBody").value="## Motivation\n\n## Guess -> Method -> Result\n- Guess: \n- Method: \n- Result: \n## On-going\n- [ ] \n## Links\n- related:: [[]]\n";
   $("#eId").focus();
 }
@@ -593,7 +618,7 @@ $("#viewRoad").onclick =()=>setMode("road");
 $("#newDot").onclick=newDot;
 $("#save").onclick=save;
 $("#focus").onclick=()=>{ if(selected && mode==="graph" && cy) cy.fit(cy.$id(selected).closedNeighborhood(),60); };
-["#search","#fType","#fStatus","#fMile"].forEach(s=>$(s).addEventListener("input",()=>render()));
+["#search","#fType","#fStatus","#fSource","#fMile"].forEach(s=>$(s).addEventListener("input",()=>render()));
 
 /* roadmap zoom (buttons + ctrl/⌘-wheel) and drag-to-pan */
 function setRoadZoom(z){ roadZoom=Math.max(0.4,Math.min(3,z)); renderRoadmap(); }

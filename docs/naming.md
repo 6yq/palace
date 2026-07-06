@@ -27,7 +27,7 @@ Group a dot under a **Scope** (a top-level bucket that means something to you) a
 
 | domain          | example `project:` values                          |
 |-----------------|----------------------------------------------------|
-| research (exp.) | `JUNO:FSMP`, `OSIRIS:Calib`, `TAO:IBD`             |
+| research (exp.) | `FSMP`, `OSIRIS:Calib`, `TAO:IBD`             |
 | research (area) | `Methods:Fitters`, `Stats:Unfolding`               |
 | software        | `WebApp:Auth`, `WebApp:Billing`, `Infra:CI`        |
 | writing         | `Thesis:Ch3`, `Paper:Revisions`                    |

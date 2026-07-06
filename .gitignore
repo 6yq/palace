@@ -21,3 +21,6 @@ CLAUDE.local.md
 __pycache__/
 *.pyc
 CLAUDE.md
+
+# imported academic material (extracted text + provenance) — local only
+sources/
