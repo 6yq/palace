@@ -31,7 +31,7 @@ Group a dot under a **Scope** (a top-level bucket that means something to you) a
 | research (area) | `Methods:Fitters`, `Stats:Unfolding`               |
 | software        | `WebApp:Auth`, `WebApp:Billing`, `Infra:CI`        |
 | writing         | `Thesis:Ch3`, `Paper:Revisions`                    |
-| teaching / life | `Teaching:Grading`, `Palace:Meta`             |
+| teaching / life | `Teaching:Grading`, `Mneme:Meta`             |
 
 Scope can be an experiment, a product, a course, a research area, a client — whatever
 gives you legible lanes. Mix experiment-scopes and topic-scopes freely.

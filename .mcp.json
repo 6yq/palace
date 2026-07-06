@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "palace": {
+    "mneme": {
       "command": "python3",
       "args": ["viewer/mcp_server.py"]
     }

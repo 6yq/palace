@@ -1,8 +1,8 @@
-# palace — a knowledge graph of "dots" distilled from AI coding sessions
+# Mneme — a knowledge graph of "dots" distilled from AI coding sessions
 
 Every AI coding session produces reasoning that dies with the session: a
 motivation, a guess, the method tried, the result, and what's still open.
-**palace** keeps that structure. It distills sessions into atomic, linked
+**Mneme** keeps that structure. It distills sessions into atomic, linked
 **dots** — plain markdown notes — and gives you a browser to grow, link, and
 roadmap them.
 
@@ -26,7 +26,7 @@ ships their notes or setup with the tool.
 ## Quick start
 
 ```bash
-git clone <this-repo> palace && cd palace
+git clone <this-repo> Mneme && cd Mneme
 python3 viewer/serve.py            # -> http://127.0.0.1:8899  (shows examples/)
 ```
 
@@ -44,7 +44,7 @@ ssh -L 8899:127.0.0.1:8899 <host>  # on your laptop, then open localhost:8899
 
 - **With an AI agent:** give it the `distill-session` skill (a small prompt that
   reads a session and emits dots in the schema below), then ask it to *"distill
-  this session into the palace"*. The skill lives in your agent config, not here.
+  this session into the Mneme"*. The skill lives in your agent config, not here.
 - **By hand:** create a `dots/<id>.md` following the schema below.
 - **In the viewer:** the **+ dot** button.
 

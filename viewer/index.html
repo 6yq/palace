@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>palace</title>
+<title>Mneme</title>
 <script src="./cytoscape.min.js"></script>
 <style>
   /* ── dataviz tokens — light default, dark via prefers-color-scheme ───────── */
@@ -156,7 +156,7 @@
   <div id="grip" title="drag to resize panel"></div>
   <div id="side">
     <header>
-      <span class="brand"><i class="mark"></i>palace</span>
+      <span class="brand"><i class="mark"></i>Mneme</span>
       <span class="grow"></span>
       <span class="seg">
         <button id="viewGraph" class="on">graph</button>
@@ -281,7 +281,7 @@ async function load(){
   }catch(e){
     $("#empty").innerHTML = "<b style='color:#e34948'>load error:</b> "+((e&&e.message)||e)
       +"<br><small>open devtools console (F12) for detail</small>";
-    console.error("palace load failed:", e);
+    console.error("Mneme load failed:", e);
   }
 }
 
@@ -649,7 +649,7 @@ $("#roadCtl").addEventListener("click",e=>{ const z=e.target.dataset.z; if(!z) r
 
 /* drag the grip to resize the side panel (persisted) */
 (function(){ const grip=$("#grip"); if(!grip) return; let drag=false;
-  try{ const w=+(localStorage.getItem("palace.sideW")||0);
+  try{ const w=+(localStorage.getItem("Mneme.sideW")||0);
     if(w) document.documentElement.style.setProperty("--sideW",w+"px"); }catch(_){}
   grip.addEventListener("pointerdown",e=>{ drag=true; grip.classList.add("drag");
     try{grip.setPointerCapture(e.pointerId);}catch(_){} e.preventDefault(); });
@@ -658,7 +658,7 @@ $("#roadCtl").addEventListener("click",e=>{ const z=e.target.dataset.z; if(!z) r
     document.documentElement.style.setProperty("--sideW",w+"px"); if(cy) cy.resize(); });
   window.addEventListener("pointerup",()=>{ if(!drag) return; drag=false; grip.classList.remove("drag");
     const w=parseInt(getComputedStyle(document.documentElement).getPropertyValue("--sideW"))||344;
-    try{ localStorage.setItem("palace.sideW",w); }catch(_){}
+    try{ localStorage.setItem("Mneme.sideW",w); }catch(_){}
     if(mode==="road") renderRoadmap(); });
 })();
 

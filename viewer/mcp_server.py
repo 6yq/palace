@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""palace MCP server — expose the dot store as typed MCP tools + resources.
+"""Mneme MCP server — expose the dot store as typed MCP tools + resources.
 
 Stdlib only, same as serve.py (no `pip install mcp`). Speaks the MCP stdio
 transport: newline-delimited JSON-RPC 2.0 on stdin/stdout (logs go to stderr).
 Reuses serve.py's parser/writer/reindex so the graph stays the single source of truth.
 
-Wire it up (project-scoped) via palace/.mcp.json, or:
-    claude mcp add palace -- python3 viewer/mcp_server.py
+Wire it up (project-scoped) via mneme/.mcp.json, or:
+    claude mcp add Mneme -- python3 viewer/mcp_server.py
 
 Tools:  search · get · neighbors · affiliate · upsert · reindex · stats
-Resources:  palace://index ,  palace://dot/<id>
+Resources:  mneme://index ,  mneme://dot/<id>
 """
 import sys, os, json, re, contextlib
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -24,7 +24,7 @@ PROTO = "2024-11-05"
 STOP = set("the a an of to in for and or on with by is are be as at from into via using "
            "we our this that it its per over under new use used uses model method".split())
 
-def log(*a): print("[palace-mcp]", *a, file=sys.stderr, flush=True)
+def log(*a): print("[mneme-mcp]", *a, file=sys.stderr, flush=True)
 def toks(s): return {w for w in re.findall(r"[a-z0-9][a-z0-9+/_.-]{1,}", (s or "").lower()) if w not in STOP}
 
 # ── tool implementations (return plain text; the model reads it) ────────────
@@ -109,16 +109,16 @@ TOOLMAP = {name: fn for name, _d, _s, _r, fn in TOOLS}
 
 # ── resources ───────────────────────────────────────────────────────────────
 def res_list():
-    out = [{"uri": "palace://index", "name": "INDEX.md", "mimeType": "text/markdown"}]
+    out = [{"uri": "mneme://index", "name": "INDEX.md", "mimeType": "text/markdown"}]
     for n in _nodes():
-        out.append({"uri": f"palace://dot/{n['id']}", "name": n["title"], "mimeType": "text/markdown"})
+        out.append({"uri": f"mneme://dot/{n['id']}", "name": n["title"], "mimeType": "text/markdown"})
     return out
 
 def res_read(uri):
-    if uri == "palace://index":
+    if uri == "mneme://index":
         p = serve.ROOT / "INDEX.md"
         return p.read_text(encoding="utf-8") if p.exists() else "(no INDEX.md — run reindex)"
-    m = re.match(r"^palace://dot/(.+)$", uri)
+    m = re.match(r"^mneme://dot/(.+)$", uri)
     if m: return t_get({"id": m.group(1)})
     raise ValueError(f"unknown resource {uri}")
 
@@ -128,7 +128,7 @@ def handle(msg):
     if method == "initialize":
         return {"protocolVersion": params.get("protocolVersion", PROTO),
                 "capabilities": {"tools": {}, "resources": {}},
-                "serverInfo": {"name": "palace", "version": "0.1.0"}}
+                "serverInfo": {"name": "mneme", "version": "0.1.0"}}
     if method == "ping": return {}
     if method == "tools/list":
         return {"tools": [{"name": n, "description": d, "inputSchema": {**s, "required": r}}
@@ -152,7 +152,7 @@ def handle(msg):
     raise KeyError(method)   # -> method not found
 
 def main():
-    log("palace MCP up (stdio) — dots at", serve.DOTS)
+    log("Mneme MCP up (stdio) — dots at", serve.DOTS)
     for line in sys.stdin:
         line = line.strip()
         if not line: continue

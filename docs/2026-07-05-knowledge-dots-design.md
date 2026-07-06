@@ -1,4 +1,4 @@
-# Knowledge Dots ("palace") — Design
+# Knowledge Dots ("mneme") — Design
 
 Date: 2026-07-05
 Status: approved (delegated), building
@@ -40,7 +40,7 @@ synced across your machines, e.g. by Syncthing):
     SKILL.md
     extract-session.sh        (session jsonl -> conversation text)
     dot-template.md
-  palace/                     UNITS 2-4 — the DB (its own git repo)
+  mneme/                     UNITS 2-4 — the DB (its own git repo)
     dots/*.md                 canonical atomic notes (source of truth)
     INDEX.md                  regenerable table of contents
     viewer/
@@ -54,11 +54,11 @@ synced across your machines, e.g. by Syncthing):
 ### Unit 1 — `distill-session` skill
 
 **Interface:** invoked when the user says "distill this session", "save what I
-learned", "add to palace", or after finishing a work session.
-**Depends on:** `extract-session.sh` (bundled), the palace `dots/` dir.
+learned", "add to Mneme", or after finishing a work session.
+**Depends on:** `extract-session.sh` (bundled), the Mneme `dots/` dir.
 **Does:** run extractor on target session(s) → analyze the conversation for
 motivation / guess→method→result / on-going items / keywords → emit one or more
-dots in the schema below → write to `palace/dots/` → propose `next::`/`motivates::`
+dots in the schema below → write to `mneme/dots/` → propose `next::`/`motivates::`
 links to existing dots (grep existing ids) → regenerate `INDEX.md`.
 **Does NOT:** read raw jsonl into context (uses the extractor), invent figure
 paths (uses real ones from the session), or touch the viewer.
@@ -105,7 +105,7 @@ Why this mattered.
 
 ### Unit 3 — the DB (git repo)
 
-`palace/` is its own git repo. Syncthing moves the files across machines; git
+`mneme/` is its own git repo. Syncthing moves the files across machines; git
 gives history, diffs, rollback, and `git tag` for real milestones. Caveat:
 Syncthing also mirrors `.git` — fine for one-machine-at-a-time use; commit often.
 
@@ -145,7 +145,7 @@ open `http://localhost:8899` in the local browser. No X forwarding needed.
 ## Build order
 
 1. Skill + extractor + template.
-2. palace git repo + README + .gitignore.
+2. Mneme git repo + README + .gitignore.
 3. Seed dots by dogfooding the skill on a real recent session.
 4. serve.py + index.html; verify it renders the seed dots.
 5. Point my-slides at the new skill; update MEMORY.md.
