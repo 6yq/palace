@@ -83,7 +83,8 @@
     display:flex;flex-direction:column;overflow:auto}
   header{display:flex;align-items:center;gap:10px;padding:12px 10px 12px 15px;border-bottom:1px solid var(--line)}
   header .brand{flex:1;min-width:0;display:inline-flex;align-items:center;gap:10px}
-  header .brand .mark{width:28px;height:28px;flex:none}
+  header .brand .mark{width:30px;height:30px;flex:none;border-radius:50%;object-fit:cover;
+    box-shadow:0 0 0 1px var(--border),var(--shadow)}
   header .brand .name{font-size:18px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
     color:var(--ink);line-height:1}
   .headctl{flex:none;display:flex;flex-direction:column;align-items:stretch;gap:6px}
@@ -185,20 +186,8 @@
   <div id="side">
     <header>
       <span class="brand" title="Mnemosyne — the Muse of memory">
-        <svg class="mark" viewBox="0 0 28 28" aria-hidden="true">
-          <defs><linearGradient id="mnLyre" x1="4" y1="24" x2="24" y2="4" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#0072B2"/><stop offset=".5" stop-color="#009E73"/><stop offset="1" stop-color="#E69F00"/>
-          </linearGradient></defs>
-          <g fill="none" stroke="url(#mnLyre)" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10.5 21.4 C3.9 18.4 4.3 9.6 9.7 6.9" stroke-width="1.8"/>
-            <path d="M17.5 21.4 C24.1 18.4 23.7 9.6 18.3 6.9" stroke-width="1.8"/>
-            <path d="M9.7 6.9 C12.4 5.2 15.6 5.2 18.3 6.9" stroke-width="1.8"/>
-            <path d="M10.9 21.1 C12.6 23.1 15.4 23.1 17.1 21.1" stroke-width="1.8"/>
-            <path d="M11.8 20.7 L11.8 7.5" stroke-width="0.9"/>
-            <path d="M14 21.3 L14 6.8" stroke-width="0.9"/>
-            <path d="M16.2 20.7 L16.2 7.5" stroke-width="0.9"/>
-          </g>
-        </svg>
+        <!-- logo: detail of D.G. Rossetti, "Mnemosyne" (1881) — public domain, via Wikimedia Commons -->
+        <img class="mark" src="./logo.png" width="30" height="30" alt="Mnemosyne">
         <span class="name">Mneme</span>
       </span>
       <div class="headctl">

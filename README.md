@@ -92,3 +92,8 @@ Cytoscape.js for a single-file no-build graph. See `docs/`.
 
 MIT for the tooling. `viewer/cytoscape.min.js` is vendored (MIT, © the Cytoscape
 Consortium).
+
+## Credits
+
+App mark: detail of Dante Gabriel Rossetti, *Mnemosyne* (1881) — public domain
+(artist d. 1882), via [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Mnemosyne_(color)_Rossetti.jpg).
