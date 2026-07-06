@@ -81,7 +81,7 @@
   /* ── side panel (right) ─────────────────────────────────────────────────── */
   #side{width:var(--sideW,344px);flex:none;border-left:1px solid var(--line);background:var(--panel);
     display:flex;flex-direction:column;overflow:auto}
-  header{display:flex;align-items:center;gap:10px;padding:12px 10px 12px 15px;border-bottom:1px solid var(--line)}
+  header{display:flex;align-items:center;gap:10px;padding:12px 14px 12px 15px;border-bottom:1px solid var(--line)}
   header .brand{flex:1;min-width:0;display:inline-flex;align-items:center;gap:10px}
   header .brand .mark{width:30px;height:30px;flex:none;border-radius:50%;object-fit:cover;
     box-shadow:0 0 0 1px var(--border),var(--shadow)}
@@ -141,9 +141,9 @@
   #legend .note{color:var(--muted);font-size:11px;line-height:1.5;margin-top:2px}
   .sw{width:12px;height:12px;border-radius:3px;display:inline-block;flex:none}
 
-  /* status line (loaded · shown · selected) — one quiet line, no extra rule */
-  #status{padding:8px 14px 10px;color:var(--muted);font-size:11.5px;letter-spacing:.02em}
-  #status b{color:var(--ink2);font-weight:650}
+  /* loaded · shown · selected — sits right under the project legend, no rule, natural spacing */
+  #legend #status{margin:6px 0 2px;color:var(--muted);font-size:11.5px;letter-spacing:.02em}
+  #legend #status b{color:var(--ink2);font-weight:650}
   /* project legend rows breathe a little more */
   #legend .grid.proj{row-gap:14px}
 
@@ -215,7 +215,6 @@
       <span class="chips-lab">projects</span>
       <span id="projChips" class="chipwrap"></span>
     </div>
-    <div id="status">loading…</div>
     <div id="empty"></div>
     <div id="panel">
       <h3 id="pTitle"></h3>
@@ -353,6 +352,7 @@ function buildLegend(){
   $("#legend").innerHTML =
       `<div class="cap">project → colour</div><div class="grid proj">${proj}</div>`
     + (over?`<div class="note">9th+ project folds to “other” grey — split projects to keep hues distinct.</div>`:"")
+    + `<div id="status"></div>`
     + `<div class="cap">type → shape &nbsp;·&nbsp; size → rank</div><div class="grid">${shapes}</div>`
     + `<div class="cap">link → relationship</div><div class="grid">`
     + edge(cssVar("--e-hier"),"part-of")+edge(cssVar("--e-seq"),"next")
@@ -720,7 +720,7 @@ $("#roadCtl").addEventListener("click",e=>{ const z=e.target.dataset.z; if(!z) r
 
 // re-theme on OS light/dark switch
 if(window.matchMedia) matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{
-  if(!DATA.nodes.length) return; buildLegend(); buildProjChips();
+  if(!DATA.nodes.length) return; buildLegend(); buildProjChips(); updateStatus();
   if(cy){ cy.nodes().forEach(n=>{ const d=DATA.nodes.find(x=>x.id===n.id()); if(d) n.data("color",projColor(d.project)); });
     cy.style(graphStyle()); }
   if(mode==="road") renderRoadmap();
